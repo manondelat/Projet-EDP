@@ -1,0 +1,465 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Apr 14 12:00:22 2022
+
+@author: Manon
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.sparse import coo_matrix
+from scipy.sparse.csgraph import connected_components
+
+
+
+
+def LoadVTX(nom): #tableau qui renvoie les coordonnées de chaque noeud
+    with open(nom, "r") as tf:
+        X = list()
+        tf.readline()
+        t = int(tf.readline())
+        for i in range(0,t):
+            r = tf.readline()
+            data = r.split()
+            X.append([float(data[1]),float(data[2])])
+        X = np.array(X)
+        return X
+
+# question 1: on modifie LoadElt
+
+def LoadELT(nom):
+    with open(nom , "r") as f:
+        X = list()
+        Y = list()
+        for line in f:
+            if "$Elements"in line :
+                break   
+        line=f.readline()
+        t=int(line)
+  
+        for i in range (0,t):
+            r=f.readline()  
+            data = r.split()
+            X.append([int(data[1]),int(data[2]),int(data[3])])
+            Y.append([int(data[4])])
+        X = np.array(X) 
+        Y = np.array(Y)            
+        return X,Y
+    
+
+
+#question 2
+
+
+def PlotSubDomain(vtx,elt,label):
+    liste_1 = list() #liste des éléments appartenant à Omega1
+    liste_2 = list() #liste des éléments appartenant à Omega2
+    for i in range(0,len(elt)):
+        if label[i] == 1:
+            liste_1.append(np.array([elt[i,0],elt[i,1],elt[i,2]]))
+        if label[i] == 2:
+            liste_2.append(np.array([elt[i,0],elt[i,1],elt[i,2]]))
+    liste_1 = np.array(liste_1)
+    liste_2 = np.array(liste_2)
+    x = vtx[:,0]
+    y = vtx[:,1]
+    plt.triplot(x,y,liste_1,color="b")
+    plt.triplot(x,y,liste_2,color = "r")
+    plt.show()
+
+
+vtx = LoadVTX("config1.msh")
+elt = LoadELT("config1.msh")[0]   
+label =  LoadELT("config1.msh")[1]  
+
+# lorsque l'on veut étudier les solutions pour le maillage 2:
+# vtx = LoadVTX("config2.msh")
+# elt = LoadELT("config2.msh")[0]   
+# label =  LoadELT("config2.msh")[1]  
+
+PlotSubDomain(vtx,elt,label)
+
+
+
+
+
+#question 3
+
+
+
+
+def Boundary(elt):
+    elem1 = list()
+    elem2 = list()
+    elem3 = list()
+    arrete1 = list()
+    arrete2 = list()
+    arrete3 = list()
+    bord = list()
+    for i in range(0,len(elt)):
+        elem1.append(elt[i,0])
+        elem2.append(elt[i,1])
+        elem3.append(elt[i,2])
+    for i in range(0,len(elt)):
+        if elem1[i] < elem2[i]:
+            arrete1.append((elem1[i],elem2[i]))
+        else:
+            arrete1.append((elem2[i],elem1[i]))
+            
+    for i in range(0,len(elt)):
+        if elem2[i] < elem3[i]:
+            arrete2.append((elem2[i],elem3[i]))
+        else:
+            arrete2.append((elem3[i],elem2[i]))    
+
+    for i in range(0,len(elt)):
+        if elem3[i] < elem1[i]:
+            arrete3.append((elem3[i],elem1[i]))
+        else:
+            arrete3.append((elem1[i],elem3[i])) 
+    
+    arrete = arrete1+arrete2+arrete3
+    
+    for elem in arrete:
+        if elem not in bord:
+            bord.append(elem)
+        else:
+            bord.remove(elem)
+            
+    bord = np.array(bord)
+    return bord
+
+
+def matadj(elt):
+    arrete = set()
+    for i in range(0,len(elt)):
+        for j in range(0,len(elt[0])):
+            for k in range(0,len(elt[0])):
+                arrete.add((elt[i,j],elt[i,k]))
+
+    liste = list(map(list,arrete))
+    l = np.array(liste)
+    ligne = l[:,0]
+    colonne = l[:,1]
+    data = np.ones(len(ligne))
+    Adj = coo_matrix((data,(ligne,colonne)))
+    return Adj
+
+
+
+def CCmpt(elt):
+    cc = np.zeros((len(elt)))
+    A = matadj(elt)
+    n_component, labels = connected_components(A,directed = False)
+    for i in range(0,len(elt)):
+        cc[i] = labels[elt[i,0]]
+    return cc
+
+
+borders = Boundary(elt) 
+
+
+cc = CCmpt(borders)
+
+
+
+
+def InnerBoundary(elt):
+    borders = Boundary(elt)  
+    cc = CCmpt(borders)
+    innerbord = list()
+    for i in range(0,len(borders)):
+        if cc[i] == 0:
+            innerbord.append(np.array([borders[i,0],borders[i,1]]))
+    innerbord = np.array(innerbord)
+    return innerbord
+
+InnerB = InnerBoundary(elt) 
+
+
+
+def verification_InnerB(elt): # verification de _InnerB(elt)
+    InnerB = InnerBoundary(elt) 
+
+    for i in range(0,len(InnerB)):
+        abscisse = list()
+        ordonnee = list()
+        abscisse.append(vtx[InnerB[i,0],0])
+        abscisse.append(vtx[InnerB[i,1],0])
+        ordonnee.append(vtx[InnerB[i,0],1])
+        ordonnee.append(vtx[InnerB[i,1],1])
+        plt.plot(abscisse,ordonnee,color="r")
+    plt.title("Bord intérieur")
+    plt.show()   
+
+
+   
+
+
+#question 4
+
+def PlotMesh(vtx,elt,val,titre):
+    xy=np.array(vtx)
+    triangle=np.array(elt)
+    x=xy[:,0]
+    y=xy[:,1]
+    plt.tripcolor(x,y,triangle,val,shading = "gouraud")
+    plt.colorbar()
+    plt.title(titre)
+    plt.show()
+
+
+
+
+def sol_exacte(x):
+    X=np.zeros(len (x))
+    for i in range (0,len(x)):
+        X[i]= 1
+    
+    return X
+
+
+val=sol_exacte(vtx)
+
+PlotMesh(vtx,elt,val,"solution exacte")
+                              
+
+
+
+#question 5
+
+
+def aire_triangle(e,vtx):
+    s1 = e[0]
+    s2 = e[1]
+    s3 = e[2]
+    b1 = np.array([vtx[s1,0],vtx[s1,1]])
+    b2 = np.array([vtx[s2,0],vtx[s2,1]])
+    b3 = np.array([vtx[s3,0],vtx[s3,1]])
+    
+    # longueur [b1,b2]
+    a = np.sqrt((b1[0]-b2[0])**2+(b1[1]-b2[1])**2)
+    #longueur [b2,b3]
+    b = np.sqrt((b2[0]-b3[0])**2+(b2[1]-b3[1])**2)
+    #longueur [b1,b3]
+    c = np.sqrt((b1[0]-b3[0])**2+(b1[1]-b3[1])**2)
+    
+    s = (a+b+c)/2
+    aire = np.sqrt(s*(s-a)*(s-b)*(s-c))
+    return aire
+
+
+def Kloc(e,vtx):
+    M = np.zeros((3,3))
+    s1 = e[0]
+    coord1 = vtx[int(s1),:]
+    s2 = e[1]
+    coord2 = vtx[int(s2),:]
+    s3 = e[2]
+    coord3 = vtx[int(s3),:]
+    
+    
+    M[0,0] = np.dot((coord3-coord2).T,coord3-coord2)
+    M[0,1] = np.dot((coord3-coord2).T,coord1-coord3)
+    M[0,2] = np.dot((coord3-coord2).T,coord2-coord1)
+    
+    M[1,0] = np.dot((coord1-coord3).T,coord3-coord2)
+    M[1,1] = np.dot((coord1-coord3).T,coord1-coord3)
+    M[1,2] = np.dot((coord1-coord3).T,coord2-coord1)
+    
+    
+    M[2,0] = np.dot((coord2-coord1).T,coord3-coord2)
+    M[2,1] = np.dot((coord2-coord1).T,coord1-coord3)
+    M[2,2] = np.dot((coord2-coord1).T,coord2-coord1)
+    
+
+    return (1/(4*aire_triangle(e,vtx)))*M
+
+
+def Rig(vtx,elt):
+    Nt = len(elt)
+    Nx = len(vtx)
+    A = np.zeros((Nx,Nx))
+    for q in range(0,Nt):
+        M = Kloc(elt[q,:],vtx)
+        for l in range(0,3): 
+            for m in range(0,3):
+                j = elt[q,l]
+                k = elt[q,m]
+                A[j,k] = A[j,k] + M[l,m]
+    return A
+
+def Mloc(e,vtx):
+    M = np.ones((3,3))
+    for i in range(0,3):
+        M[i,i] = 2
+    for i in range(1,3):
+        M[0,i]=1
+    M[1,2] = 1
+    M[1,0] = 1
+    M[2,0] = 1
+    M[2,1] = 1
+    return (aire_triangle(e,vtx)/12)*M
+
+
+
+def Mass_Omega2(vtx,elt):
+    Nt = len(elt)
+    Nx = len(vtx)
+    A = np.zeros((Nx,Nx))
+    for q in range(0,Nt):
+        M = Mloc(elt[q,:],vtx)
+        for l in range(0,3): 
+            if label[q] ==2:
+                for m in range(0,3):
+                    j = elt[q,l]
+                    k = elt[q,m]
+                    A[j,k] = A[j,k] + M[l,m]
+    return A
+ 
+
+               
+Omega2 = list() #tous les éléments de Omega2
+for i in range(0,len(vtx)):
+    if label[i] ==2:
+        Omega2.append(np.array([elt[i,0],elt[i,1],elt[i,2]]))
+Omega2 = np.array(Omega2) 
+
+
+
+def aire_omega2(vtx,elt): 
+    k = 0    
+    for i in range(0,len(Omega2)):
+        k =  k + aire_triangle(Omega2[i,:],vtx)
+    return k   
+
+# print(aire_omega2(vtx,elt))  
+
+
+def test_mass_omega2(vtx,elt):
+    I = np.ones(len(vtx))
+    V = np.dot(I.T, Mass_Omega2(vtx,elt))
+    return np.dot(V,I)
+# print(test_mass_omega2(vtx,elt))
+
+# les deux fonctions aire_omega2 et test_mass_omega2 sont égales: il est probable que la matrice de masse sur Omega2 soit bien définie
+
+
+def Mloc1D(vtx,e):
+    M = np.ones((2,2))
+    M[0,0] = 2
+    M[1,1] = 2
+    a1 = e[0]
+    a2 = e[1]
+    b1 = np.array([vtx[a1,0],vtx[a1,1]])
+    b2 = np.array([vtx[a2,0],vtx[a2,1]])
+    #longueur [b1,b2]
+    gamma = np.sqrt((b1[0]-b2[0])**2+(b1[1]-b2[1])**2)
+    return (gamma/6)*M
+
+
+
+
+def Massbord(vtx,InnerB):
+    Nt = len(InnerB)
+    Nx = len(vtx)
+    A = np.zeros((Nx,Nx))
+    for q in range(0,Nt):
+        M = Mloc1D(vtx,InnerB[q,:])
+        for l in range(0,2):
+            for m in range(0,2):
+                j = InnerB[q,l]
+                k = InnerB[q,m]
+                A[j,k] = A[j,k] + M[l,m]
+    return A
+ 
+
+               
+def Test_Massbord(vtx,InnerB):
+    I = np.ones(len(vtx))
+    V = np.dot(I.T, Massbord(vtx,InnerB))
+    return np.dot(V,I)
+
+print(Test_Massbord(vtx,InnerB)) 
+# notre fonction Test_Massbord renvoie bien la longueur du bord intérieur: il est probable que la matrice Massbord soit bien définie
+             
+def a(vtx,elt) :
+    return Rig(vtx,elt) + Mass_Omega2(vtx,elt)  + Massbord(vtx,InnerB)
+
+
+
+def F(vtx,elt):
+    Ones = np.ones(len(vtx))
+    F = np.dot(Mass_Omega2(vtx,elt),Ones)        
+    return F 
+
+
+
+def F2(vtx,elt):
+    X = np.zeros(len(vtx))       
+    for i in range(0,len(InnerB)) :
+        s1 = InnerB[i,0]
+        s2 = InnerB[i,1]
+        coord_s1 = np.array([vtx[s1,0],vtx[s1,1]])
+        coord_s2 = np.array([vtx[s2,0],vtx[s2,1]])
+        h = np.sqrt((coord_s1[0]-coord_s2[0])**2+(coord_s1[1]-coord_s2[1])**2)
+        X[s1] = X[s1]+ h/2 
+        X[s2] = X[s2]+ h/2        
+    return X
+
+def F_final(vtx,elt):
+    return F2(vtx,elt) + F(vtx,elt)
+
+
+sol = np.linalg.solve(a(vtx,elt),F_final(vtx,elt))
+PlotMesh(vtx,elt,sol, "solution approchée 1")
+
+
+
+
+
+ 
+
+def u_exacte(x,y):
+    return 1
+
+def uex_lagrange(vtx):
+    F = np.zeros(len(vtx))
+    for j in range(0,len(vtx)):
+        F[j] = u_exacte(vtx[j,0],vtx[j,1])
+    return F
+
+diff = sol - uex_lagrange(vtx)
+
+
+PlotMesh(vtx,elt,diff, "Niveau d'erreur de la norme L2")  
+
+
+# question 6
+V = np.dot(diff.T,Mass_Omega2(vtx, elt))
+L2 = np.dot(V,diff)
+print(L2)
+
+
+#question 7
+
+def Mass(vtx,elt):
+    Nt = len(elt)
+    Nx = len(vtx)
+    A = np.zeros((Nx,Nx))
+    for q in range(0,Nt):
+        M = Mloc(elt[q,:],vtx)
+        for l in range(0,3):
+            for m in range(0,3):
+                j = elt[q,l]
+                k = elt[q,m]
+                A[j,k] = A[j,k] + M[l,m]
+    return A
+
+def a2(vtx,elt):
+    return Rig(vtx, elt) + Massbord(vtx, InnerB) + Mass(vtx, elt)
+
+sol2 = np.linalg.solve(a2(vtx,elt),F(vtx,elt))
+
+
+PlotMesh(vtx,elt,sol2,"solution approchée 2")
