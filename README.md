@@ -36,11 +36,14 @@ Kloc() renvoie la matrice de rigidité locale
 
 Rig()  renvoie la matrice de rigidité globale
 
+
+test_rigidité() permet de voir si on a bien défini la matrice de rigidité sur Oméga, grâce aux fonctions u_1() et u_2(). En enlevant le # devant le "print(test_rigidié(vtx))", on voit que la fonction renvoie une valeur très proche de 1.75, qui est égale à l'aire du domaine.
+
 Mloc() renvoie la matrice de masse locale en 2D
 
 Mass_Omega2()  renvoie la matrice de masse globale sur Omega2.
 
-l.322 : On fait une liste de tous les éléments de Omega2. Cela nous permet grâce à la fonction aire_omega2 (l.330), de calculer l’aire de Omega2 en additionnant l’aire de tous ses éléments. Ensuite, la fonction test_mass_omega2() (l.339) nous permet d’effectuer le test de vérification de la matrice de masse sur Omega2.  Les deux fonctions aire_omega2 et test_mass_omega2 sont égales: il est probable que la matrice de masse sur Omega2 soit bien définie. Pour lancer les fonctions, il suffit d'enlever le # devant "print(aire_omega2(vtx,elt) " l.336 et devant "print(test_mass_omega2(vtx,elt))" l.343.
+l.355 : On fait une liste de tous les éléments de Omega2. Cela nous permet grâce à la fonction aire_omega2 (l.363), de calculer l’aire de Omega2 en additionnant l’aire de tous ses éléments. Ensuite, la fonction test_mass_omega2() (l.372) nous permet d’effectuer le test de vérification de la matrice de masse sur Omega2.  Les deux fonctions aire_omega2 et test_mass_omega2 sont égales: il est probable que la matrice de masse sur Omega2 soit bien définie. Pour lancer les fonctions, il suffit d'enlever le # devant "print(aire_omega2(vtx,elt) " l.369 et devant "print(test_mass_omega2(vtx,elt))" l.376.
 
 Mloc1D() est la matrice de masse locale sur les arrêtes.
 
@@ -51,22 +54,24 @@ Test_Massbord() renvoie  le chiffre 2 qui correspond bien à la longueur du bord
 a() renvoie le membre de gauche du système linéaire que l’on souhaite résoudre.
 
 
-l.410 : F_final() renvoie le membre de droite du système linéaire que l’on souhaite résoudre, en additionnant F() et F2()
+F_final() renvoie le membre de droite du système linéaire que l’on souhaite résoudre, en additionnant F() et F2()
 
-l.414 : sol est la solution du système linéaire
-l.415 : on trace la solution approchée de la question 5. Si on la print, on a un vecteur avec que des 1. Cela est de bonne augure car la solution que l’on cherche est égale à 1.
+sol est la solution du système linéaire
+l.448 : on trace la solution approchée de la question 5. Si on la print, on a un vecteur avec que des 1. Cela est de bonne augure car la solution que l’on cherche est égale à 1.
 
-l.426 : uex_lagrange() renvoie les valeurs de la solution exacte pour chaque nœud du maillage.
+uex_lagrange() renvoie les valeurs de la solution exacte pour chaque nœud du maillage.
 
-l.432 : diff renvoie la différence entre la solution approchée sol et uex_lagrange. Nous allons représenter cette erreur graphiquement grâce à la fonction Plotmesh().  On voit que l’erreur est de l’ordre de 10^{-15}, ce qui est négligeable. 
+l.465 : diff renvoie la différence entre la solution approchée sol et uex_lagrange. Nous allons représenter cette erreur graphiquement grâce à la fonction Plotmesh().  On voit que l’erreur est de l’ordre de 10^{-15}, ce qui est négligeable. 
 
 
-l.440 : L2  représente la norme L2 de la différence entre la solution exacte et la solution approchée. Elle est égale à environ 6.64x10^{-31} pour le maillage 1 et à 4.97 x 10^{-30} pour le maillage2. Cela est négligeable. La norme L2 serait théoriquement encore plus faible si on affinait le maillage.
+l.473 : L2  représente la norme L2 de la différence entre la solution exacte et la solution approchée. Elle est égale à environ 6.64x10^{-31} pour le maillage 1 et à 4.97 x 10^{-30} pour le maillage2. Cela est négligeable. La norme L2 serait théoriquement encore plus faible si on affinait le maillage.
 
 
 Nous allons ensuite nous atteler à la résolution du deuxième problème (question 7)
 
-l.446 : Mass()  renvoie la matrice de masse sur tout Omega. 
+Mass()  renvoie la matrice de masse sur tout Omega. 
 
-l.462 : sol2 renvoie la résolution du nouveau système linéaire correspondant au problème de la question 7. On affiche ensuite  la solution approchée à l’aide de PlotMesh.
+test_mass() renvoie bien une valeur proche de 1.75 qui est égale à l'aire du domaine. Il est probable que la matrice de masse soit bien définie sur Omega.
+
+sol2 renvoie la résolution du nouveau système linéaire correspondant au problème de la question 7. On affiche ensuite  la solution approchée à l’aide de PlotMesh.
 
